@@ -23,16 +23,23 @@ from haystack.dataclasses import ChatMessage, ChatRole, StreamingChunk
 from haystack.tools import tool
 from haystack.utils import Secret
 
+from src.rag_service import RAGService
+
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 
-MODEL = "gpt-4o-mini"
 MAX_AGENT_STEPS = 10
 SYSTEM_PROMPT = (
-    "You are a helpful assistant. Use the available tools when they help you "
-    "answer accurately. Be concise."
+    "You are a helpful assistant with access to a knowledge base stored in a remote PostgreSQL repository. "
+    "When the user asks questions about documents, company records, technical guides, or factual details, "
+    "always use 'search_knowledge_base' or 'list_knowledge_base_documents' to retrieve relevant facts from the database. "
+    "Always cite the source document title, file name, and page number when answering from retrieved context. "
+    "Use the available tools when they help you answer accurately. Be concise and precise."
 )
+
+# Shared RAG service instance
+_rag_service = RAGService()
 
 
 # ---------------------------------------------------------------------------
@@ -54,8 +61,38 @@ def add_numbers(
     return a + b
 
 
-# TODO: add your own tools here (DB lookups, HTTP calls, retrievers, ...).
-TOOLS = [get_current_time, add_numbers]
+@tool
+def search_knowledge_base(
+    query: Annotated[str, "The search query or keywords to look up in the remote PostgreSQL knowledge base."],
+    limit: Annotated[int, "Maximum number of relevant document passages to retrieve (default: 5)"] = 5,
+) -> str:
+    """Search for relevant documents and text chunks in the remote PostgreSQL database using hybrid vector and keyword search."""
+    return _rag_service.search_and_format(query=query, limit=limit)
+
+
+@tool
+def list_knowledge_base_documents(
+    limit: Annotated[int, "Maximum number of document entries to list (default: 20)"] = 20,
+) -> str:
+    """List all documents currently indexed in the remote PostgreSQL database."""
+    return _rag_service.list_documents_formatted(limit=limit)
+
+
+@tool
+def get_document_details(
+    document_id: Annotated[int, "The numeric ID of the document to inspect in detail."],
+) -> str:
+    """Retrieve all content chunks and page details for a specific document by its ID."""
+    return _rag_service.get_document_details_formatted(document_id=document_id)
+
+
+TOOLS = [
+    search_knowledge_base,
+    list_knowledge_base_documents,
+    get_document_details,
+    get_current_time,
+    add_numbers,
+]
 
 
 # ---------------------------------------------------------------------------
@@ -88,24 +125,28 @@ def stream_to_console(chunk: StreamingChunk) -> None:
 # Agent
 # ---------------------------------------------------------------------------
 
-def build_agent() -> Agent:
+def build_agent(
+    model: str | None = None,
+    tools: list | None = None,
+    system_prompt: str = SYSTEM_PROMPT,
+) -> Agent:
     load_dotenv()
 
     # Swap for any Haystack ChatGenerator that supports tools + streaming,
     # e.g. AnthropicChatGenerator, OllamaChatGenerator, AzureOpenAIChatGenerator.
-    model = os.getenv("OPENAI_MODEL") or "Qwen/Qwen3.8-27B"
+    model_name = model or os.getenv("AGENT_CHAT_MODEL") or os.getenv("OPENAI_MODEL") or "Qwen/Qwen3.8-27B"
     api_key = Secret.from_env_var("OPENAI_API_KEY")
     api_base_url = os.getenv("OPENAI_API_URL") or ""
     chat_generator = OpenAIChatGenerator(
-        model=model,
+        model=model_name,
         api_key=api_key,
         api_base_url=api_base_url,
     )
 
     agent = Agent(
         chat_generator=chat_generator,
-        tools=TOOLS,
-        system_prompt=SYSTEM_PROMPT,
+        tools=tools or TOOLS,
+        system_prompt=system_prompt,
         streaming_callback=stream_to_console,
         exit_conditions=["text"],  # stop when the LLM answers with plain text
         max_agent_steps=MAX_AGENT_STEPS,
