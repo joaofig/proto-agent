@@ -10,7 +10,7 @@ from openai import OpenAI
 load_dotenv()
 
 DEFAULT_EMBED_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL") or os.getenv("EMBEDDING_MODEL") or "qwen3-embedding-8b"
-DEFAULT_EMBED_DIM = int(os.getenv("EMBEDDING_DIM", "1024"))
+DEFAULT_EMBED_DIM = int(os.getenv("EMBEDDING_DIM", "4096"))
 
 
 def get_openai_client() -> OpenAI:
