@@ -85,7 +85,7 @@ class DocumentLoader:
         elif suffix in {".md", ".markdown"}:
             content = self._extract_markdown(path)
         elif suffix == ".pdf":
-            content = self._extract_pdf(path)
+            content = self._extract_pdf(path).replace(chr(0), "")
         else:
             raise ValueError(f"Unsupported format '{suffix}'.")
 
