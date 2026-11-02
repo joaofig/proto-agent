@@ -146,11 +146,15 @@ def test_cli_e2e_text_file_ingestion(mock_repo_cls, mock_embed, tmp_path, capsys
     assert captured.err == ""
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
 def test_cli_subprocess_help():
     proc = subprocess.run(
         [sys.executable, "main.py", "--help"],
         capture_output=True,
         text=True,
+        cwd=PROJECT_ROOT,
     )
     assert proc.returncode == 0
     assert "--doc FILE_PATH" in proc.stdout
@@ -162,6 +166,7 @@ def test_cli_subprocess_doc_missing_value():
         [sys.executable, "main.py", "--doc"],
         capture_output=True,
         text=True,
+        cwd=PROJECT_ROOT,
     )
     assert proc.returncode == 2
     assert "error: argument --doc: expected one argument" in proc.stderr
@@ -172,6 +177,7 @@ def test_cli_subprocess_missing_file():
         [sys.executable, "main.py", "--doc", "nonexistent_file_abc.txt"],
         capture_output=True,
         text=True,
+        cwd=PROJECT_ROOT,
     )
     assert proc.returncode == 1
     assert "Error indexing document: File not found: nonexistent_file_abc.txt" in proc.stderr
@@ -184,6 +190,7 @@ def test_cli_subprocess_unsupported_format(tmp_path):
         [sys.executable, "main.py", "--doc", str(bad_file)],
         capture_output=True,
         text=True,
+        cwd=PROJECT_ROOT,
     )
     assert proc.returncode == 1
     assert "Error indexing document: Unsupported file format '.csv'" in proc.stderr
