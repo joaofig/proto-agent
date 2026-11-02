@@ -19,7 +19,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--doc",
         type=str,
         metavar="FILE_PATH",
-        help="Path to a document (.txt, .md, .pdf) to index into the knowledge base.",
+        help="Path to a document (.txt, .md, .pdf, .docx) to index into the knowledge base.",
     )
     return parser
 

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import ClassVar
 
 from haystack.components.converters import (
+    DOCXToDocument,
     MarkdownToDocument,
     PyPDFToDocument,
     TextFileToDocument,
@@ -36,6 +37,7 @@ class DocumentLoader:
         ".md": "text/markdown",
         ".markdown": "text/markdown",
         ".pdf": "application/pdf",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     }
     FALLBACK_ENCODINGS: ClassVar[tuple[str, ...]] = (
         "utf-8-sig",
@@ -63,6 +65,11 @@ class DocumentLoader:
             raise ValueError(f"Path is not a regular file: {file_path}")
 
         suffix = path.suffix.lower()
+        if suffix == ".doc":
+            raise ValueError(
+                f"Legacy Word format '.doc' is not supported. "
+                f"Convert '{path.name}' to '.docx' and try again."
+            )
         if suffix not in self.SUPPORTED_EXTENSIONS:
             supported = ", ".join(sorted(self.SUPPORTED_EXTENSIONS.keys()))
             raise ValueError(
@@ -86,6 +93,8 @@ class DocumentLoader:
             content = self._extract_markdown(path)
         elif suffix == ".pdf":
             content = self._extract_pdf(path).replace(chr(0), "")
+        elif suffix == ".docx":
+            content = self._extract_docx(path)
         else:
             raise ValueError(f"Unsupported format '{suffix}'.")
 
@@ -145,3 +154,21 @@ class DocumentLoader:
             raise
         except Exception as exc:
             raise ValueError(f"Failed to extract text from PDF '{path.name}': {exc}") from exc
+
+    def _extract_docx(self, path: Path) -> str:
+        """Extract text from a Word .docx file using DOCXToDocument."""
+        try:
+            converter = DOCXToDocument()
+            result = converter.run(sources=[path])
+            docs = result.get("documents", [])
+            if not docs:
+                raise ValueError(f"Failed to extract text from Word document '{path.name}'.")
+
+            contents = [doc.content for doc in docs if doc.content and doc.content.strip()]
+            if not contents:
+                raise ValueError(f"No extractable text found in Word document '{path.name}'.")
+            return "\n\n".join(contents)
+        except ValueError:
+            raise
+        except Exception as exc:
+            raise ValueError(f"Failed to extract text from Word document '{path.name}': {exc}") from exc

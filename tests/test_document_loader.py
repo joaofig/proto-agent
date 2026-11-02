@@ -59,6 +59,10 @@ def test_supported_extensions_mapping(loader: DocumentLoader) -> None:
     assert loader.SUPPORTED_EXTENSIONS[".md"] == "text/markdown"
     assert loader.SUPPORTED_EXTENSIONS[".markdown"] == "text/markdown"
     assert loader.SUPPORTED_EXTENSIONS[".pdf"] == "application/pdf"
+    assert (
+        loader.SUPPORTED_EXTENSIONS[".docx"]
+        == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
 
 
 def test_missing_file_raises(loader: DocumentLoader) -> None:
@@ -74,10 +78,17 @@ def test_directory_path_raises(loader: DocumentLoader, tmp_path: Path) -> None:
 
 
 def test_unsupported_format_raises(loader: DocumentLoader, tmp_path: Path) -> None:
-    docx_file = tmp_path / "sample.docx"
-    docx_file.write_text("dummy")
-    with pytest.raises(ValueError, match="Unsupported file format '.docx'"):
-        loader.load(docx_file)
+    pptx_file = tmp_path / "sample.pptx"
+    pptx_file.write_text("dummy")
+    with pytest.raises(ValueError, match="Unsupported file format '.pptx'"):
+        loader.load(pptx_file)
+
+
+def test_legacy_doc_raises_with_conversion_hint(loader: DocumentLoader, tmp_path: Path) -> None:
+    doc_file = tmp_path / "legacy.doc"
+    doc_file.write_bytes(b"dummy legacy binary word content")
+    with pytest.raises(ValueError, match=r"Convert 'legacy\.doc' to '\.docx'"):
+        loader.load(doc_file)
 
 
 def test_empty_file_raises(loader: DocumentLoader, tmp_path: Path) -> None:
@@ -210,6 +221,34 @@ def test_load_pdf_mocked_converter(loader: DocumentLoader, tmp_path: Path) -> No
         assert doc.content == "Extracted PDF page 1 text"
         assert doc.content_type == "application/pdf"
         assert doc.size_bytes == len(b"%PDF-1.4 dummy content")
+
+
+def test_load_real_docx(loader: DocumentLoader, tmp_path: Path) -> None:
+    from docx import Document as DocxDocument
+
+    docx_path = tmp_path / "report.docx"
+    doc = DocxDocument()
+    doc.add_paragraph("First paragraph content")
+    doc.add_paragraph("Second paragraph content")
+    doc.save(docx_path)
+
+    loaded = loader.load(docx_path)
+    assert loaded.file_name == "report.docx"
+    assert loaded.title == "report"
+    assert loaded.content_type == (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    assert "First paragraph content" in loaded.content
+    assert "Second paragraph content" in loaded.content
+    assert loaded.size_bytes == len(docx_path.read_bytes())
+
+
+def test_load_corrupt_docx_raises(loader: DocumentLoader, tmp_path: Path) -> None:
+    docx_path = tmp_path / "corrupt.docx"
+    docx_path.write_bytes(b"Not a real docx file")
+
+    with pytest.raises(ValueError, match="Failed to extract text from Word document"):
+        loader.load(docx_path)
 
 
 def test_load_corrupt_pdf_raises(loader: DocumentLoader, tmp_path: Path) -> None:

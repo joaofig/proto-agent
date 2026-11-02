@@ -142,7 +142,7 @@ class RAGService:
         user_id: int = 1,
         company_id: int = 1,
     ) -> tuple[int, int]:
-        """Loads and indexes a supported file (.txt, .md, .pdf), returning (doc_id, chunk_count).
+        """Loads and indexes a supported file (.txt, .md, .pdf, .docx), returning (doc_id, chunk_count).
 
         Args:
             file_path: Path to the document file.
