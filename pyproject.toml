@@ -7,7 +7,10 @@ dependencies = [
     "openai>=1.0.0",
     "pgvector>=0.5.1",
     "pgvector-haystack>=8.1.2",
+    "pypdf>=5.0.0",
     "psycopg[binary]>=3.3.6",
     "pytest>=9.2.0",
     "python-dotenv>=1.2.4",
+    "markdown-it-py>=4.2.0",
+    "mdit-plain>=1.0.1",
 ]
