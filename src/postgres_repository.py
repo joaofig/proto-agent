@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Generator, Sequence
+from typing import Any
 
 import psycopg
 from dotenv import load_dotenv
@@ -90,7 +91,7 @@ class PostgresRepository:
         self.dbname = dbname or os.getenv("POSTGRES_DB", "postgres")
 
     @contextmanager
-    def get_connection(self) -> Generator[psycopg.Connection, None, None]:
+    def get_connection(self) -> Generator[psycopg.Connection]:
         """Create and yield a PostgreSQL connection with pgvector registered."""
         conn = psycopg.connect(
             host=self.host,
@@ -108,11 +109,10 @@ class PostgresRepository:
 
     def insert_document(self, doc: DocumentMetadata) -> int:
         """Insert a document record into user_document and return document_id."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO user_document (
+        with self.get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO user_document (
                         user_id, company_id, scope, folder, title, file_name,
                         content_type, size_bytes, sha256, pages, chunks, status, lang, is_latest
                     )
@@ -145,10 +145,9 @@ class PostgresRepository:
             return []
 
         inserted_ids: list[int] = []
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                for chunk in chunks:
-                    cur.execute(
+        with self.get_connection() as conn, conn.cursor() as cur:
+            for chunk in chunks:
+                cur.execute(
                         """
                         INSERT INTO document_chunk (
                             document_id, user_id, company_id, scope,
@@ -194,10 +193,9 @@ class PostgresRepository:
 
     def list_documents(self, limit: int = 50) -> list[DocumentMetadata]:
         """List documents stored in the database."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with self.get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     SELECT document_id, title, file_name, folder, content_type,
                            size_bytes, pages, chunks, status, lang, is_latest,
                            created_at, user_id, company_id, scope
@@ -205,36 +203,37 @@ class PostgresRepository:
                     ORDER BY created_at DESC
                     LIMIT %s;
                     """,
-                    (limit,),
+                (limit,),
+            )
+            rows = cur.fetchall()
+            return [
+                DocumentMetadata(
+                    document_id=row[0],
+                    title=row[1] or "",
+                    file_name=row[2] or "",
+                    folder=row[3] or "/",
+                    content_type=row[4] or "text/plain",
+                    size_bytes=row[5] or 0,
+                    pages=row[6] or 1,
+                    chunks=row[7] or 0,
+                    status=row[8] or "",
+                    lang=row[9] or "en",
+                    is_latest=row[10] if row[10] is not None else True,
+                    created_at=row[11],
+                    user_id=row[12] or 1,
+                    company_id=row[13] or 1,
+                    scope=row[14] or "company",
                 )
-                rows = cur.fetchall()
-                return [
-                    DocumentMetadata(
-                        document_id=row[0],
-                        title=row[1] or "",
-                        file_name=row[2] or "",
-                        folder=row[3] or "/",
-                        content_type=row[4] or "text/plain",
-                        size_bytes=row[5] or 0,
-                        pages=row[6] or 1,
-                        chunks=row[7] or 0,
-                        status=row[8] or "",
-                        lang=row[9] or "en",
-                        is_latest=row[10] if row[10] is not None else True,
-                        created_at=row[11],
-                        user_id=row[12] or 1,
-                        company_id=row[13] or 1,
-                        scope=row[14] or "company",
-                    )
-                    for row in rows
-                ]
+                for row in rows
+            ]
 
-    def get_document_chunks(self, document_id: int, limit: int = 100) -> list[DocumentChunk]:
+    def get_document_chunks(
+        self, document_id: int, limit: int = 100
+    ) -> list[DocumentChunk]:
         """Retrieve chunks belonging to a specific document."""
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
+        with self.get_connection() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
                     SELECT chunk_id, document_id, page, ordinal, content, lang,
                            user_id, company_id, scope, created_at
                     FROM document_chunk
@@ -242,24 +241,24 @@ class PostgresRepository:
                     ORDER BY page ASC, ordinal ASC
                     LIMIT %s;
                     """,
-                    (document_id, limit),
+                (document_id, limit),
+            )
+            rows = cur.fetchall()
+            return [
+                DocumentChunk(
+                    chunk_id=row[0],
+                    document_id=row[1],
+                    page=row[2],
+                    ordinal=row[3],
+                    content=row[4],
+                    lang=row[5],
+                    user_id=row[6],
+                    company_id=row[7],
+                    scope=row[8],
+                    created_at=row[9],
                 )
-                rows = cur.fetchall()
-                return [
-                    DocumentChunk(
-                        chunk_id=row[0],
-                        document_id=row[1],
-                        page=row[2],
-                        ordinal=row[3],
-                        content=row[4],
-                        lang=row[5],
-                        user_id=row[6],
-                        company_id=row[7],
-                        scope=row[8],
-                        created_at=row[9],
-                    )
-                    for row in rows
-                ]
+                for row in rows
+            ]
 
     def search_keyword(self, query: str, limit: int = 5) -> list[SearchHit]:
         """Full-text and keyword search using PostgreSQL tsvector and ILIKE."""
@@ -267,10 +266,9 @@ class PostgresRepository:
         if not cleaned_query:
             return []
 
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                # We use plainto_tsquery combined with ILIKE for robust matching
-                sql = """
+        with self.get_connection() as conn, conn.cursor() as cur:
+            # We use plainto_tsquery combined with ILIKE for robust matching
+            sql = """
                 SELECT 
                     c.chunk_id,
                     c.document_id,
@@ -289,37 +287,41 @@ class PostgresRepository:
                 ORDER BY rank_score DESC, c.chunk_id ASC
                 LIMIT %s;
                 """
-                like_pattern = f"%{cleaned_query}%"
-                cur.execute(sql, (cleaned_query, cleaned_query, like_pattern, like_pattern, limit))
-                rows = cur.fetchall()
+            like_pattern = f"%{cleaned_query}%"
+            cur.execute(
+                sql,
+                (cleaned_query, cleaned_query, like_pattern, like_pattern, limit),
+            )
+            rows = cur.fetchall()
 
-                hits: list[SearchHit] = []
-                for row in rows:
-                    hits.append(
-                        SearchHit(
-                            chunk_id=row[0],
-                            document_id=row[1],
-                            file_name=row[2],
-                            title=row[3],
-                            page=row[4],
-                            ordinal=row[5],
-                            content=row[6],
-                            score=float(row[7]) if row[7] is not None else 0.0,
-                            search_type="keyword",
-                        )
+            hits: list[SearchHit] = []
+            for row in rows:
+                hits.append(
+                    SearchHit(
+                        chunk_id=row[0],
+                        document_id=row[1],
+                        file_name=row[2],
+                        title=row[3],
+                        page=row[4],
+                        ordinal=row[5],
+                        content=row[6],
+                        score=float(row[7]) if row[7] is not None else 0.0,
+                        search_type="keyword",
                     )
-                return hits
+                )
+            return hits
 
-    def search_vector(self, query_embedding: Sequence[float], limit: int = 5) -> list[SearchHit]:
+    def search_vector(
+        self, query_embedding: Sequence[float], limit: int = 5
+    ) -> list[SearchHit]:
         """Vector similarity search using cosine distance with pgvector."""
         if not query_embedding:
             return []
 
-        with self.get_connection() as conn:
-            with conn.cursor() as cur:
-                # In pgvector: <=> is cosine distance (0 is identical, 2 is opposite)
-                # Similarity score = 1.0 - cosine_distance
-                sql = """
+        with self.get_connection() as conn, conn.cursor() as cur:
+            # In pgvector: <=> is cosine distance (0 is identical, 2 is opposite)
+            # Similarity score = 1.0 - cosine_distance
+            sql = """
                 SELECT 
                     c.chunk_id,
                     c.document_id,
@@ -335,25 +337,25 @@ class PostgresRepository:
                 ORDER BY c.embedding <=> %s::vector ASC
                 LIMIT %s;
                 """
-                cur.execute(sql, (list(query_embedding), list(query_embedding), limit))
-                rows = cur.fetchall()
+            cur.execute(sql, (list(query_embedding), list(query_embedding), limit))
+            rows = cur.fetchall()
 
-                hits: list[SearchHit] = []
-                for row in rows:
-                    hits.append(
-                        SearchHit(
-                            chunk_id=row[0],
-                            document_id=row[1],
-                            file_name=row[2],
-                            title=row[3],
-                            page=row[4],
-                            ordinal=row[5],
-                            content=row[6],
-                            score=float(row[7]) if row[7] is not None else 0.0,
-                            search_type="vector",
-                        )
+            hits: list[SearchHit] = []
+            for row in rows:
+                hits.append(
+                    SearchHit(
+                        chunk_id=row[0],
+                        document_id=row[1],
+                        file_name=row[2],
+                        title=row[3],
+                        page=row[4],
+                        ordinal=row[5],
+                        content=row[6],
+                        score=float(row[7]) if row[7] is not None else 0.0,
+                        search_type="vector",
                     )
-                return hits
+                )
+            return hits
 
     def search_hybrid(
         self,
@@ -370,7 +372,11 @@ class PostgresRepository:
         # Retrieve candidate pools for both methods
         candidate_k = max(limit * 3, 20)
         kw_hits = self.search_keyword(query, limit=candidate_k)
-        vec_hits = self.search_vector(query_embedding, limit=candidate_k) if query_embedding else []
+        vec_hits = (
+            self.search_vector(query_embedding, limit=candidate_k)
+            if query_embedding
+            else []
+        )
 
         if not vec_hits:
             return kw_hits[:limit]
@@ -382,16 +388,22 @@ class PostgresRepository:
         hit_map: dict[int, SearchHit] = {}
 
         for rank, hit in enumerate(kw_hits, start=1):
-            rrf_scores[hit.chunk_id] = rrf_scores.get(hit.chunk_id, 0.0) + (1.0 / (rrf_k + rank))
+            rrf_scores[hit.chunk_id] = rrf_scores.get(hit.chunk_id, 0.0) + (
+                1.0 / (rrf_k + rank)
+            )
             hit_map[hit.chunk_id] = hit
 
         for rank, hit in enumerate(vec_hits, start=1):
-            rrf_scores[hit.chunk_id] = rrf_scores.get(hit.chunk_id, 0.0) + (1.0 / (rrf_k + rank))
+            rrf_scores[hit.chunk_id] = rrf_scores.get(hit.chunk_id, 0.0) + (
+                1.0 / (rrf_k + rank)
+            )
             if hit.chunk_id not in hit_map:
                 hit_map[hit.chunk_id] = hit
 
         # Sort by final fused RRF score
-        sorted_chunk_ids = sorted(rrf_scores.keys(), key=lambda cid: rrf_scores[cid], reverse=True)
+        sorted_chunk_ids = sorted(
+            rrf_scores.keys(), key=lambda cid: rrf_scores[cid], reverse=True
+        )
 
         results: list[SearchHit] = []
         for cid in sorted_chunk_ids[:limit]:

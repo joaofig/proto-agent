@@ -1,9 +1,8 @@
 """Unit and integration tests for PostgresRepository."""
 
 from unittest.mock import MagicMock, patch
-import pytest
+
 from src.postgres_repository import (
-    DocumentChunk,
     DocumentMetadata,
     PostgresRepository,
     SearchHit,
@@ -55,7 +54,23 @@ def test_list_documents(mock_reg_vector, mock_connect):
     mock_connect.return_value = mock_conn
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
     mock_cursor.fetchall.return_value = [
-        (1, "Doc Title", "doc.txt", "/", "text/plain", 100, 1, 2, "indexed", "en", True, None, 1, 1, "company")
+        (
+            1,
+            "Doc Title",
+            "doc.txt",
+            "/",
+            "text/plain",
+            100,
+            1,
+            2,
+            "indexed",
+            "en",
+            True,
+            None,
+            1,
+            1,
+            "company",
+        )
     ]
 
     repo = PostgresRepository()
@@ -67,13 +82,42 @@ def test_list_documents(mock_reg_vector, mock_connect):
 
 def test_hybrid_search_fusion():
     repo = PostgresRepository()
-    hit1 = SearchHit(chunk_id=10, document_id=1, file_name="f1.txt", title="F1", page=1, ordinal=0, content="c1", score=0.8)
-    hit2 = SearchHit(chunk_id=20, document_id=2, file_name="f2.txt", title="F2", page=1, ordinal=0, content="c2", score=0.6)
-    hit3 = SearchHit(chunk_id=30, document_id=3, file_name="f3.txt", title="F3", page=1, ordinal=0, content="c3", score=0.5)
+    hit1 = SearchHit(
+        chunk_id=10,
+        document_id=1,
+        file_name="f1.txt",
+        title="F1",
+        page=1,
+        ordinal=0,
+        content="c1",
+        score=0.8,
+    )
+    hit2 = SearchHit(
+        chunk_id=20,
+        document_id=2,
+        file_name="f2.txt",
+        title="F2",
+        page=1,
+        ordinal=0,
+        content="c2",
+        score=0.6,
+    )
+    hit3 = SearchHit(
+        chunk_id=30,
+        document_id=3,
+        file_name="f3.txt",
+        title="F3",
+        page=1,
+        ordinal=0,
+        content="c3",
+        score=0.5,
+    )
 
     with patch.object(repo, "search_keyword", return_value=[hit1, hit2]):
         with patch.object(repo, "search_vector", return_value=[hit2, hit3]):
-            results = repo.search_hybrid(query="test", query_embedding=[0.1] * 4096, limit=3, rrf_k=60)
+            results = repo.search_hybrid(
+                query="test", query_embedding=[0.1] * 4096, limit=3, rrf_k=60
+            )
             assert len(results) == 3
             # hit2 appears in both keyword and vector, so it should rank highest in RRF
             assert results[0].chunk_id == 20

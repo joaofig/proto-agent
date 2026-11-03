@@ -4,6 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from main import build_arg_parser, main
@@ -38,14 +39,18 @@ def test_cli_doc_success(mock_rag_service_cls, capsys):
     )
 
     captured = capsys.readouterr()
-    assert captured.out == "Successfully indexed 'my_document.pdf' (ID: 42, Chunks: 5)\n"
+    assert (
+        captured.out == "Successfully indexed 'my_document.pdf' (ID: 42, Chunks: 5)\n"
+    )
     assert captured.err == ""
 
 
 @patch("main.RAGService")
 def test_cli_doc_file_not_found(mock_rag_service_cls, capsys):
     mock_rag_instance = MagicMock()
-    mock_rag_instance.index_file.side_effect = FileNotFoundError("File not found: missing.txt")
+    mock_rag_instance.index_file.side_effect = FileNotFoundError(
+        "File not found: missing.txt"
+    )
     mock_rag_service_cls.return_value = mock_rag_instance
 
     with pytest.raises(SystemExit) as exc_info:
@@ -129,7 +134,9 @@ def test_cli_doc_flag_requires_value():
 @patch("src.rag_service.PostgresRepository")
 def test_cli_e2e_text_file_ingestion(mock_repo_cls, mock_embed, tmp_path, capsys):
     test_file = tmp_path / "overview.txt"
-    test_file.write_text("Proto-agent RAG system architecture overview.", encoding="utf-8")
+    test_file.write_text(
+        "Proto-agent RAG system architecture overview.", encoding="utf-8"
+    )
 
     mock_repo = MagicMock()
     mock_repo.insert_document.return_value = 101
@@ -180,7 +187,10 @@ def test_cli_subprocess_missing_file():
         cwd=PROJECT_ROOT,
     )
     assert proc.returncode == 1
-    assert "Error indexing document: File not found: nonexistent_file_abc.txt" in proc.stderr
+    assert (
+        "Error indexing document: File not found: nonexistent_file_abc.txt"
+        in proc.stderr
+    )
 
 
 def test_cli_subprocess_unsupported_format(tmp_path):

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from src.haystack_chat_agent import build_agent, chat_loop
 from src.rag_service import RAGService
@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> None:
                 f"Successfully indexed '{doc_path.name}' (ID: {doc_id}, Chunks: {chunk_count})"
             )
             sys.exit(0)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - any indexing failure should exit 1
             print(f"Error indexing document: {exc}", file=sys.stderr)
             sys.exit(1)
     else:

@@ -84,7 +84,9 @@ def test_unsupported_format_raises(loader: DocumentLoader, tmp_path: Path) -> No
         loader.load(pptx_file)
 
 
-def test_legacy_doc_raises_with_conversion_hint(loader: DocumentLoader, tmp_path: Path) -> None:
+def test_legacy_doc_raises_with_conversion_hint(
+    loader: DocumentLoader, tmp_path: Path
+) -> None:
     doc_file = tmp_path / "legacy.doc"
     doc_file.write_bytes(b"dummy legacy binary word content")
     with pytest.raises(ValueError, match=r"Convert 'legacy\.doc' to '\.docx'"):
@@ -115,7 +117,7 @@ def test_load_plain_text(loader: DocumentLoader, tmp_path: Path) -> None:
     assert doc.title == "guide"
     assert doc.content == "Hello World RAG Guide"
     assert doc.content_type == "text/plain"
-    assert doc.size_bytes == len("Hello World RAG Guide".encode("utf-8"))
+    assert doc.size_bytes == len(b"Hello World RAG Guide")
 
 
 def test_load_text_extension(loader: DocumentLoader, tmp_path: Path) -> None:
@@ -129,7 +131,9 @@ def test_load_text_extension(loader: DocumentLoader, tmp_path: Path) -> None:
     assert doc.content_type == "text/plain"
 
 
-def test_load_markdown_rendered_semantics(loader: DocumentLoader, tmp_path: Path) -> None:
+def test_load_markdown_rendered_semantics(
+    loader: DocumentLoader, tmp_path: Path
+) -> None:
     md_file = tmp_path / "readme.md"
     md_file.write_text(
         "# Project Readme\n\nThis is **bold** text and [a link](https://example.com).",

@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from haystack.components.agents import Agent
 from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.dataclasses import ChatMessage, ChatRole, StreamingChunk
@@ -46,10 +46,11 @@ _rag_service = RAGService()
 # Tools — plain functions; type hints + Annotated docs become the JSON schema
 # ---------------------------------------------------------------------------
 
+
 @tool
 def get_current_time() -> str:
     """Return the current UTC date and time in ISO 8601 format."""
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @tool
@@ -63,8 +64,13 @@ def add_numbers(
 
 @tool
 def search_knowledge_base(
-    query: Annotated[str, "The search query or keywords to look up in the remote PostgreSQL knowledge base."],
-    limit: Annotated[int, "Maximum number of relevant document passages to retrieve (default: 5)"] = 5,
+    query: Annotated[
+        str,
+        "The search query or keywords to look up in the remote PostgreSQL knowledge base.",
+    ],
+    limit: Annotated[
+        int, "Maximum number of relevant document passages to retrieve (default: 5)"
+    ] = 5,
 ) -> str:
     """Search for relevant documents and text chunks in the remote PostgreSQL database using hybrid vector and keyword search."""
     return _rag_service.search_and_format(query=query, limit=limit)
@@ -72,7 +78,9 @@ def search_knowledge_base(
 
 @tool
 def list_knowledge_base_documents(
-    limit: Annotated[int, "Maximum number of document entries to list (default: 20)"] = 20,
+    limit: Annotated[
+        int, "Maximum number of document entries to list (default: 20)"
+    ] = 20,
 ) -> str:
     """List all documents currently indexed in the remote PostgreSQL database."""
     return _rag_service.list_documents_formatted(limit=limit)
@@ -98,6 +106,7 @@ TOOLS = [
 # ---------------------------------------------------------------------------
 # Streaming
 # ---------------------------------------------------------------------------
+
 
 def stream_to_console(chunk: StreamingChunk) -> None:
     """Called for every chunk the LLM streams back.
@@ -125,6 +134,7 @@ def stream_to_console(chunk: StreamingChunk) -> None:
 # Agent
 # ---------------------------------------------------------------------------
 
+
 def build_agent(
     model: str | None = None,
     tools: list | None = None,
@@ -134,7 +144,12 @@ def build_agent(
 
     # Swap for any Haystack ChatGenerator that supports tools + streaming,
     # e.g. AnthropicChatGenerator, OllamaChatGenerator, AzureOpenAIChatGenerator.
-    model_name = model or os.getenv("AGENT_CHAT_MODEL") or os.getenv("OPENAI_MODEL") or "Qwen/Qwen3.8-27B"
+    model_name = (
+        model
+        or os.getenv("AGENT_CHAT_MODEL")
+        or os.getenv("OPENAI_MODEL")
+        or "Qwen/Qwen3.8-27B"
+    )
     api_key = Secret.from_env_var("OPENAI_API_KEY")
     api_base_url = os.getenv("OPENAI_API_URL") or ""
     chat_generator = OpenAIChatGenerator(
@@ -159,6 +174,7 @@ def build_agent(
 # Chat loop
 # ---------------------------------------------------------------------------
 
+
 def chat_loop(agent: Agent) -> None:
     history: list[ChatMessage] = []
     print("Chat started. Type 'exit' to quit, '/reset' to clear history.\n")
@@ -166,7 +182,7 @@ def chat_loop(agent: Agent) -> None:
     while True:
         try:
             user_input = input("you > ").strip()
-        except (EOFError, KeyboardInterrupt):
+        except EOFError, KeyboardInterrupt:
             print()
             break
 
@@ -184,7 +200,7 @@ def chat_loop(agent: Agent) -> None:
 
         try:
             result = agent.run(messages=history)
-        except Exception as exc:  # keep the REPL alive on API/tool errors
+        except Exception as exc:  # noqa: BLE001  # keep the REPL alive on API/tool errors
             history.pop()
             print(f"\n[error] {exc}\n", file=sys.stderr)
             continue

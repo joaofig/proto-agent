@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import os
-from typing import Sequence
+from collections.abc import Sequence
+
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
 
-DEFAULT_EMBED_MODEL = os.getenv("AGENT_EMBED_MODEL") or os.getenv("EMBEDDING_MODEL") or "qwen3-embedding-8b"
-DEFAULT_EMBED_DIM = int(os.getenv("AGENT_EMBED_DIM") or os.getenv("EMBEDDING_DIM") or "4096")
+DEFAULT_EMBED_MODEL = (
+    os.getenv("AGENT_EMBED_MODEL")
+    or os.getenv("EMBEDDING_MODEL")
+    or "qwen3-embedding-8b"
+)
+DEFAULT_EMBED_DIM = int(
+    os.getenv("AGENT_EMBED_DIM") or os.getenv("EMBEDDING_DIM") or "4096"
+)
 
 
 def get_openai_client() -> OpenAI:
@@ -53,7 +60,7 @@ def embed_texts(
                 model=model,
                 dimensions=dimensions,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - fallback for any API error
             # Fallback without explicit dimensions if model doesn't support dimensions param
             print(e)
             response = client.embeddings.create(
@@ -66,7 +73,9 @@ def embed_texts(
     return [item.embedding for item in ordered]
 
 
-def embed_query(query: str, model: str = DEFAULT_EMBED_MODEL, dimensions: int = DEFAULT_EMBED_DIM) -> list[float]:
+def embed_query(
+    query: str, model: str = DEFAULT_EMBED_MODEL, dimensions: int = DEFAULT_EMBED_DIM
+) -> list[float]:
     """Compute embedding for a single query text."""
     embeddings = embed_texts([query], model=model, dimensions=dimensions)
     return embeddings[0] if embeddings else []

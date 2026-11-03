@@ -118,8 +118,10 @@ class DocumentLoader:
                 docs = result.get("documents", [])
                 if docs and docs[0].content:
                     return docs[0].content
-            except Exception as exc:
-                logger.debug(f"Failed to decode '{path.name}' with encoding '{enc}': {exc}")
+            except Exception as exc:  # noqa: BLE001 - any decode failure tries next encoding
+                logger.debug(
+                    f"Failed to decode '{path.name}' with encoding '{enc}': {exc}"
+                )
 
         raise ValueError(f"Failed to extract text from '{path.name}'.")
 
@@ -132,8 +134,10 @@ class DocumentLoader:
                 docs = result.get("documents", [])
                 if docs and docs[0].content:
                     return docs[0].content
-            except Exception as exc:
-                logger.debug(f"Failed to extract markdown from '{path.name}' with encoding '{enc}': {exc}")
+            except Exception as exc:  # noqa: BLE001 - any decode failure tries next encoding
+                logger.debug(
+                    f"Failed to extract markdown from '{path.name}' with encoding '{enc}': {exc}"
+                )
 
         raise ValueError(f"Failed to extract text from markdown '{path.name}'.")
 
@@ -146,14 +150,18 @@ class DocumentLoader:
             if not docs:
                 raise ValueError(f"Failed to extract text from PDF '{path.name}'.")
 
-            contents = [doc.content for doc in docs if doc.content and doc.content.strip()]
+            contents = [
+                doc.content for doc in docs if doc.content and doc.content.strip()
+            ]
             if not contents:
                 raise ValueError(f"No extractable text found in PDF '{path.name}'.")
             return "\n\n".join(contents)
         except ValueError:
             raise
         except Exception as exc:
-            raise ValueError(f"Failed to extract text from PDF '{path.name}': {exc}") from exc
+            raise ValueError(
+                f"Failed to extract text from PDF '{path.name}': {exc}"
+            ) from exc
 
     def _extract_docx(self, path: Path) -> str:
         """Extract text from a Word .docx file using DOCXToDocument."""
@@ -162,13 +170,21 @@ class DocumentLoader:
             result = converter.run(sources=[path])
             docs = result.get("documents", [])
             if not docs:
-                raise ValueError(f"Failed to extract text from Word document '{path.name}'.")
+                raise ValueError(
+                    f"Failed to extract text from Word document '{path.name}'."
+                )
 
-            contents = [doc.content for doc in docs if doc.content and doc.content.strip()]
+            contents = [
+                doc.content for doc in docs if doc.content and doc.content.strip()
+            ]
             if not contents:
-                raise ValueError(f"No extractable text found in Word document '{path.name}'.")
+                raise ValueError(
+                    f"No extractable text found in Word document '{path.name}'."
+                )
             return "\n\n".join(contents)
         except ValueError:
             raise
         except Exception as exc:
-            raise ValueError(f"Failed to extract text from Word document '{path.name}': {exc}") from exc
+            raise ValueError(
+                f"Failed to extract text from Word document '{path.name}': {exc}"
+            ) from exc

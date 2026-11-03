@@ -1,7 +1,13 @@
 """Tests for embedding generation module."""
 
 from unittest.mock import MagicMock, patch
-from src.embeddings import DEFAULT_EMBED_DIM, DEFAULT_EMBED_MODEL, embed_query, embed_texts, get_openai_client
+
+from src.embeddings import (
+    DEFAULT_EMBED_DIM,
+    DEFAULT_EMBED_MODEL,
+    embed_query,
+    embed_texts,
+)
 
 
 def test_default_embedding_dimension():
@@ -63,7 +69,9 @@ def test_embed_query_default_dimension(mock_embed_texts):
     mock_embed_texts.return_value = [[0.1, 0.2, 0.3]]
     res = embed_query("hello")
     assert res == [0.1, 0.2, 0.3]
-    mock_embed_texts.assert_called_once_with(["hello"], model=DEFAULT_EMBED_MODEL, dimensions=4096)
+    mock_embed_texts.assert_called_once_with(
+        ["hello"], model=DEFAULT_EMBED_MODEL, dimensions=4096
+    )
 
 
 @patch("src.embeddings.embed_texts")

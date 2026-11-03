@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import logging
 from pathlib import Path
-from typing import Sequence
 
 from src.document_loader import DocumentLoader
 from src.embeddings import embed_query, embed_texts
@@ -40,8 +39,10 @@ class RAGService:
 
         try:
             query_embedding = embed_query(cleaned_query)
-        except Exception as exc:
-            logger.warning(f"Failed to generate embedding for query '{cleaned_query}': {exc}. Falling back to keyword search.")
+        except Exception as exc:  # noqa: BLE001 - degrade gracefully to keyword search
+            logger.warning(
+                f"Failed to generate embedding for query '{cleaned_query}': {exc}. Falling back to keyword search."
+            )
 
         try:
             return self.repository.search_hybrid(
@@ -49,8 +50,10 @@ class RAGService:
                 query_embedding=query_embedding,
                 limit=limit,
             )
-        except Exception as exc:
-            logger.error(f"Hybrid search failed: {exc}. Attempting keyword-only search.")
+        except Exception as exc:  # noqa: BLE001 - degrade gracefully to keyword search
+            logger.error(
+                f"Hybrid search failed: {exc}. Attempting keyword-only search."
+            )
             return self.repository.search_keyword(query=cleaned_query, limit=limit)
 
     def search_and_format(self, query: str, limit: int = 5) -> str:
@@ -59,7 +62,9 @@ class RAGService:
         if not hits:
             return f"No relevant documents found in the knowledge base for query: '{query}'."
 
-        formatted_results = [f"Found {len(hits)} relevant passage(s) in PostgreSQL Knowledge Base:\n"]
+        formatted_results = [
+            f"Found {len(hits)} relevant passage(s) in PostgreSQL Knowledge Base:\n"
+        ]
         for i, hit in enumerate(hits, start=1):
             source_info = f"Document #{hit.document_id}: '{hit.title or hit.file_name}' (File: {hit.file_name}, Page: {hit.page})"
             formatted_results.append(
@@ -74,7 +79,9 @@ class RAGService:
         """Format the list of indexed documents in the database."""
         docs = self.repository.list_documents(limit=limit)
         if not docs:
-            return "No documents are currently indexed in the PostgreSQL knowledge base."
+            return (
+                "No documents are currently indexed in the PostgreSQL knowledge base."
+            )
 
         lines = [f"Indexed Documents ({len(docs)}):"]
         for d in docs:
@@ -214,8 +221,10 @@ class RAGService:
                     f"({len(chunks_text)}) for document '{title}'. Falling back to None embeddings."
                 )
                 embeddings = [None] * len(chunks_text)
-        except Exception as exc:
-            logger.warning(f"Failed to generate embeddings for document '{title}': {exc}")
+        except Exception as exc:  # noqa: BLE001 - index without embeddings on failure
+            logger.warning(
+                f"Failed to generate embeddings for document '{title}': {exc}"
+            )
             embeddings = [None] * len(chunks_text)
 
         # 3. Insert document record

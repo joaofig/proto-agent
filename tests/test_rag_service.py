@@ -174,7 +174,9 @@ def test_index_text_document_empty_raises() -> None:
         service.index_text_document(title="Empty", file_name="empty.txt", content="")
 
     with pytest.raises(ValueError, match="content is empty"):
-        service.index_text_document(title="Spaces", file_name="spaces.txt", content="   \n\t  ")
+        service.index_text_document(
+            title="Spaces", file_name="spaces.txt", content="   \n\t  "
+        )
 
     mock_repo.insert_document.assert_not_called()
     mock_repo.insert_chunks.assert_not_called()
@@ -188,7 +190,9 @@ def test_index_text_document_positional_arguments_compatibility() -> None:
 
     # 100-char text with chunk_size=70, chunk_overlap=20 -> 2 chunks (step=50)
     content = "A" * 50 + "B" * 50
-    with patch("src.rag_service.embed_texts", return_value=[[0.1], [0.2]]) as mock_embed:
+    with patch(
+        "src.rag_service.embed_texts", return_value=[[0.1], [0.2]]
+    ) as mock_embed:
         # Call with 5 positional arguments (title, file_name, content, chunk_size, chunk_overlap)
         doc_id = service.index_text_document(
             "Positional Doc",
@@ -368,7 +372,9 @@ def test_index_content_chunk_count_mismatch_raises() -> None:
 def test_index_content_insert_chunks_exception_propagates() -> None:
     mock_repo = MagicMock()
     mock_repo.insert_document.return_value = 40
-    mock_repo.insert_chunks.side_effect = RuntimeError("Database connection lost during chunk insertion")
+    mock_repo.insert_chunks.side_effect = RuntimeError(
+        "Database connection lost during chunk insertion"
+    )
     service = RAGService(repository=mock_repo)
 
     with patch("src.rag_service.embed_texts", return_value=[[0.1]]):
@@ -386,7 +392,9 @@ def test_index_text_document_embedding_failure_fallback() -> None:
     mock_repo.insert_chunks.return_value = [10]
     service = RAGService(repository=mock_repo)
 
-    with patch("src.rag_service.embed_texts", side_effect=Exception("Embedding API error")):
+    with patch(
+        "src.rag_service.embed_texts", side_effect=Exception("Embedding API error")
+    ):
         doc_id = service.index_text_document(
             title="Fallback Doc",
             file_name="fallback.txt",
@@ -451,7 +459,9 @@ def test_index_file_markdown_success(tmp_path: Path) -> None:
     service = RAGService(repository=mock_repo)
 
     md_file = tmp_path / "architecture.md"
-    md_file.write_text("# Architecture Overview\n\nDetails about system design.", encoding="utf-8")
+    md_file.write_text(
+        "# Architecture Overview\n\nDetails about system design.", encoding="utf-8"
+    )
 
     with patch("src.rag_service.embed_texts", return_value=[[0.4, 0.5]]):
         doc_id, chunk_count = service.index_file(md_file, user_id=5, company_id=10)
