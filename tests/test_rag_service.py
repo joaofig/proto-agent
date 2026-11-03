@@ -39,7 +39,7 @@ def test_search_and_format_with_hits() -> None:
     ]
     service = RAGService(repository=mock_repo)
 
-    with patch("src.rag_service.embed_query", return_value=[0.1] * 1024):
+    with patch("src.rag_service.embed_query", return_value=[0.1] * 4096):
         result = service.search_and_format("vacation policy")
         assert "Found 1 relevant passage(s)" in result
         assert "Company Policies" in result

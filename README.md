@@ -71,7 +71,7 @@ src/rag_service.py           ──► RAG orchestration, formatting & document 
    OPENAI_API_URL=https://api.openai.com/v1         # Optional: custom base URL
    AGENT_CHAT_MODEL=Qwen/Qwen3.8-27B                # Or OPENAI_MODEL
    OPENAI_EMBEDDING_MODEL=qwen3-embedding-8b        # Or EMBEDDING_MODEL
-   EMBEDDING_DIM=1024                               # Embedding dimension
+   EMBEDDING_DIM=4096                               # Embedding dimension
 
    # PostgreSQL Database
    POSTGRES_HOST=localhost
@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS document_chunk (
     ordinal INT DEFAULT 0,
     content TEXT NOT NULL,
     lang VARCHAR(16) DEFAULT 'en',
-    embedding vector(1024), -- Set dimension matching EMBEDDING_DIM
+    embedding vector(4096), -- Set dimension matching EMBEDDING_DIM
     tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );

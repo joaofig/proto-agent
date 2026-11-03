@@ -10,7 +10,7 @@ from openai import OpenAI
 load_dotenv()
 
 DEFAULT_EMBED_MODEL = os.getenv("AGENT_EMBED_MODEL") or os.getenv("EMBEDDING_MODEL") or "qwen3-embedding-8b"
-DEFAULT_EMBED_DIM = int(os.getenv("AGENT_EMBED_DIM", "4096"))
+DEFAULT_EMBED_DIM = int(os.getenv("AGENT_EMBED_DIM") or os.getenv("EMBEDDING_DIM") or "4096")
 
 
 def get_openai_client() -> OpenAI:
@@ -24,6 +24,7 @@ def embed_texts(
     texts: Sequence[str],
     model: str = DEFAULT_EMBED_MODEL,
     dimensions: int = DEFAULT_EMBED_DIM,
+    max_sequence_length: int = 2048,
 ) -> list[list[float]]:
     """Compute embeddings for a sequence of texts.
 
@@ -31,6 +32,7 @@ def embed_texts(
         texts: List of text strings to embed.
         model: Embedding model name.
         dimensions: Target embedding dimension (for models supporting Matryoshka embeddings).
+        max_sequence_length: Maximum sequence length for text inputs.
 
     Returns:
         List of embedding vectors.
@@ -39,21 +41,28 @@ def embed_texts(
         return []
 
     client = get_openai_client()
-    try:
-        # First attempt with explicit dimensions
-        response = client.embeddings.create(
-            input=list(texts),
-            model=model,
-            dimensions=dimensions,
-        )
-    except Exception:
-        # Fallback without explicit dimensions if model doesn't support dimensions param
-        response = client.embeddings.create(
-            input=list(texts),
-            model=model,
-        )
+    num_chunks = len(texts) // max_sequence_length + 1
+    text_list = list(texts)
+    responses = []
+    for i in range(num_chunks):
+        chunk = text_list[i * max_sequence_length : (i + 1) * max_sequence_length]
+        try:
+            # First attempt with explicit dimensions
+            response = client.embeddings.create(
+                input=chunk,
+                model=model,
+                dimensions=dimensions,
+            )
+        except Exception as e:
+            # Fallback without explicit dimensions if model doesn't support dimensions param
+            print(e)
+            response = client.embeddings.create(
+                input=chunk,
+                model=model,
+            )
+        responses.extend(response.data)
 
-    ordered = sorted(response.data, key=lambda item: item.index)
+    ordered = sorted(responses, key=lambda item: item.index)
     return [item.embedding for item in ordered]
 
 

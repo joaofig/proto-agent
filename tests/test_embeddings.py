@@ -5,7 +5,7 @@ from src.embeddings import DEFAULT_EMBED_DIM, DEFAULT_EMBED_MODEL, embed_query, 
 
 
 def test_default_embedding_dimension():
-    assert DEFAULT_EMBED_DIM == 2048
+    assert DEFAULT_EMBED_DIM == 4096
 
 
 def test_embed_texts_empty():
@@ -28,7 +28,7 @@ def test_embed_texts_default_dimension(mock_get_client):
     mock_client.embeddings.create.assert_called_once_with(
         input=["first", "second"],
         model=DEFAULT_EMBED_MODEL,
-        dimensions=2048,
+        dimensions=4096,
     )
 
 
@@ -50,7 +50,7 @@ def test_embed_texts_dimension_fallback(mock_get_client):
     mock_client.embeddings.create.assert_any_call(
         input=["fallback text"],
         model=DEFAULT_EMBED_MODEL,
-        dimensions=2048,
+        dimensions=4096,
     )
     mock_client.embeddings.create.assert_called_with(
         input=["fallback text"],
@@ -63,7 +63,7 @@ def test_embed_query_default_dimension(mock_embed_texts):
     mock_embed_texts.return_value = [[0.1, 0.2, 0.3]]
     res = embed_query("hello")
     assert res == [0.1, 0.2, 0.3]
-    mock_embed_texts.assert_called_once_with(["hello"], model=DEFAULT_EMBED_MODEL, dimensions=2048)
+    mock_embed_texts.assert_called_once_with(["hello"], model=DEFAULT_EMBED_MODEL, dimensions=4096)
 
 
 @patch("src.embeddings.embed_texts")

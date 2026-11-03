@@ -37,7 +37,7 @@ Required environment (via `.env`, gitignored; no `.env.example`):
 | `OPENAI_API_URL` | none (custom/self-hosted base URL) |
 | `AGENT_CHAT_MODEL` → `OPENAI_MODEL` | `Qwen/Qwen3.8-27B` |
 | `OPENAI_EMBEDDING_MODEL` → `EMBEDDING_MODEL` | `qwen3-embedding-8b` |
-| `EMBEDDING_DIM` | `1024` (must match the pgvector column) |
+| `EMBEDDING_DIM` | `4096` (must match the pgvector column) |
 | `POSTGRES_HOST/PORT/USER/PASSWORD/DB` | `localhost`/`5432`/`postgres`/``(empty)``/`postgres` |
 
 External services: an OpenAI-compatible LLM+embeddings endpoint, and Postgres with the `vector` extension and pre-created tables `user_document` and `document_chunk` (inferred from SQL; `document_chunk.tsv` is queried but never written, so it must be a generated column/trigger).
