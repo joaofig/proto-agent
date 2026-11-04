@@ -112,32 +112,32 @@ class PostgresRepository:
         with self.get_connection() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO user_document (
+                    INSERT INTO user_document (
                         user_id, company_id, scope, folder, title, file_name,
                         content_type, size_bytes, sha256, pages, chunks, status, lang, is_latest
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING document_id;
                     """,
-                    (
-                        doc.user_id,
-                        doc.company_id,
-                        doc.scope,
-                        doc.folder,
-                        doc.title,
-                        doc.file_name,
-                        doc.content_type,
-                        doc.size_bytes,
-                        doc.sha256,
-                        doc.pages,
-                        doc.chunks,
-                        doc.status,
-                        doc.lang,
-                        doc.is_latest,
-                    ),
-                )
-                res = cur.fetchone()
-                return int(res[0]) if res else 0
+                (
+                    doc.user_id,
+                    doc.company_id,
+                    doc.scope,
+                    doc.folder,
+                    doc.title,
+                    doc.file_name,
+                    doc.content_type,
+                    doc.size_bytes,
+                    doc.sha256,
+                    doc.pages,
+                    doc.chunks,
+                    doc.status,
+                    doc.lang,
+                    doc.is_latest,
+                ),
+            )
+            res = cur.fetchone()
+            return int(res[0]) if res else 0
 
     def insert_chunks(self, chunks: Sequence[DocumentChunk]) -> list[int]:
         """Insert a batch of chunks into document_chunk."""
@@ -148,7 +148,7 @@ class PostgresRepository:
         with self.get_connection() as conn, conn.cursor() as cur:
             for chunk in chunks:
                 cur.execute(
-                        """
+                    """
                         INSERT INTO document_chunk (
                             document_id, user_id, company_id, scope,
                             page, ordinal, content, lang,
@@ -161,33 +161,33 @@ class PostgresRepository:
                         )
                         RETURNING chunk_id;
                         """,
-                        (
-                            chunk.document_id,
-                            chunk.user_id,
-                            chunk.company_id,
-                            chunk.scope,
-                            chunk.page,
-                            chunk.ordinal,
-                            chunk.content,
-                            chunk.lang,
-                            chunk.embedding,
-                        ),
-                    )
-                    res = cur.fetchone()
-                    if res:
-                        inserted_ids.append(int(res[0]))
+                    (
+                        chunk.document_id,
+                        chunk.user_id,
+                        chunk.company_id,
+                        chunk.scope,
+                        chunk.page,
+                        chunk.ordinal,
+                        chunk.content,
+                        chunk.lang,
+                        chunk.embedding,
+                    ),
+                )
+                res = cur.fetchone()
+                if res:
+                    inserted_ids.append(int(res[0]))
 
-                # Update chunk count on document
-                if chunks:
-                    doc_id = chunks[0].document_id
-                    cur.execute(
-                        """
+            # Update chunk count on document
+            if chunks:
+                doc_id = chunks[0].document_id
+                cur.execute(
+                    """
                         UPDATE user_document
                         SET chunks = (SELECT COUNT(*) FROM document_chunk WHERE document_id = %s)
                         WHERE document_id = %s;
                         """,
-                        (doc_id, doc_id),
-                    )
+                    (doc_id, doc_id),
+                )
 
         return inserted_ids
 

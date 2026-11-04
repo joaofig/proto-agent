@@ -159,6 +159,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 def test_cli_subprocess_help():
     proc = subprocess.run(
         [sys.executable, "main.py", "--help"],
+        check=False,
         capture_output=True,
         text=True,
         cwd=PROJECT_ROOT,
@@ -171,6 +172,7 @@ def test_cli_subprocess_help():
 def test_cli_subprocess_doc_missing_value():
     proc = subprocess.run(
         [sys.executable, "main.py", "--doc"],
+        check=False,
         capture_output=True,
         text=True,
         cwd=PROJECT_ROOT,
@@ -182,6 +184,7 @@ def test_cli_subprocess_doc_missing_value():
 def test_cli_subprocess_missing_file():
     proc = subprocess.run(
         [sys.executable, "main.py", "--doc", "nonexistent_file_abc.txt"],
+        check=False,
         capture_output=True,
         text=True,
         cwd=PROJECT_ROOT,
@@ -198,6 +201,7 @@ def test_cli_subprocess_unsupported_format(tmp_path):
     bad_file.write_text("a,b,c", encoding="utf-8")
     proc = subprocess.run(
         [sys.executable, "main.py", "--doc", str(bad_file)],
+        check=False,
         capture_output=True,
         text=True,
         cwd=PROJECT_ROOT,

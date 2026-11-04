@@ -5,11 +5,12 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-
+from beartype import beartype
 from src.haystack_chat_agent import build_agent, chat_loop
 from src.rag_service import RAGService
 
 
+@beartype
 def build_arg_parser() -> argparse.ArgumentParser:
     """Build command-line argument parser."""
     parser = argparse.ArgumentParser(

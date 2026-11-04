@@ -113,11 +113,13 @@ def test_hybrid_search_fusion():
         score=0.5,
     )
 
-    with patch.object(repo, "search_keyword", return_value=[hit1, hit2]):
-        with patch.object(repo, "search_vector", return_value=[hit2, hit3]):
-            results = repo.search_hybrid(
-                query="test", query_embedding=[0.1] * 4096, limit=3, rrf_k=60
-            )
-            assert len(results) == 3
-            # hit2 appears in both keyword and vector, so it should rank highest in RRF
-            assert results[0].chunk_id == 20
+    with (
+        patch.object(repo, "search_keyword", return_value=[hit1, hit2]),
+        patch.object(repo, "search_vector", return_value=[hit2, hit3]),
+    ):
+        results = repo.search_hybrid(
+            query="test", query_embedding=[0.1] * 4096, limit=3, rrf_k=60
+        )
+        assert len(results) == 3
+        # hit2 appears in both keyword and vector, so it should rank highest in RRF
+        assert results[0].chunk_id == 20

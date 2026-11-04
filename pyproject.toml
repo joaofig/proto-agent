@@ -14,6 +14,8 @@ dependencies = [
     "markdown-it-py>=4.2.0",
     "mdit-plain>=1.0.1",
     "python-docx>=1.1.0",
+    "beartype>=0.23.1",
+    "fonttools[lxml,ufo,unicode,woff]>=4.68.0",
 ]
 
 [tool.pytest.ini_options]

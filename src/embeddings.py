@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from collections.abc import Sequence
 
+from beartype import beartype
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -20,6 +21,7 @@ DEFAULT_EMBED_DIM = int(
 )
 
 
+@beartype
 def get_openai_client() -> OpenAI:
     """Instantiate OpenAI client using environment variables."""
     api_key = os.getenv("OPENAI_API_KEY", "")
@@ -27,6 +29,7 @@ def get_openai_client() -> OpenAI:
     return OpenAI(api_key=api_key, base_url=base_url)
 
 
+@beartype
 def embed_texts(
     texts: Sequence[str],
     model: str = DEFAULT_EMBED_MODEL,
@@ -73,6 +76,7 @@ def embed_texts(
     return [item.embedding for item in ordered]
 
 
+@beartype
 def embed_query(
     query: str, model: str = DEFAULT_EMBED_MODEL, dimensions: int = DEFAULT_EMBED_DIM
 ) -> list[float]:

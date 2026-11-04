@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from pathlib import Path
-
+from beartype import beartype
 from src.document_loader import DocumentLoader
 from src.embeddings import embed_query, embed_texts
 from src.postgres_repository import (
@@ -29,6 +29,7 @@ class RAGService:
         self.repository = repository or PostgresRepository()
         self.document_loader = document_loader or DocumentLoader()
 
+    @beartype
     def search(self, query: str, limit: int = 5) -> list[SearchHit]:
         """Perform hybrid search with fallback to keyword search."""
         if not query or not query.strip():
@@ -56,6 +57,7 @@ class RAGService:
             )
             return self.repository.search_keyword(query=cleaned_query, limit=limit)
 
+    @beartype
     def search_and_format(self, query: str, limit: int = 5) -> str:
         """Search knowledge base and format findings into structured context for the LLM."""
         hits = self.search(query, limit=limit)
@@ -75,6 +77,7 @@ class RAGService:
 
         return "\n---\n".join(formatted_results)
 
+    @beartype
     def list_documents_formatted(self, limit: int = 50) -> str:
         """Format the list of indexed documents in the database."""
         docs = self.repository.list_documents(limit=limit)
@@ -91,6 +94,7 @@ class RAGService:
             )
         return "\n".join(lines)
 
+    @beartype
     def get_document_details_formatted(self, document_id: int) -> str:
         """Retrieve and format all chunks of a document."""
         chunks = self.repository.get_document_chunks(document_id)
@@ -102,6 +106,7 @@ class RAGService:
             lines.append(f"\n[Page {c.page}, Chunk #{c.ordinal}]:\n{c.content.strip()}")
         return "\n".join(lines)
 
+    @beartype
     def index_text_document(
         self,
         title: str,
@@ -143,6 +148,7 @@ class RAGService:
         )
         return doc_id
 
+    @beartype
     def index_file(
         self,
         file_path: str | Path,
@@ -176,6 +182,7 @@ class RAGService:
             company_id=company_id,
         )
 
+    @beartype
     def _index_content(
         self,
         title: str,

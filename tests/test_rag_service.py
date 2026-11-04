@@ -335,13 +335,15 @@ def test_index_content_invalid_doc_id_raises() -> None:
     mock_repo.insert_document.return_value = 0
     service = RAGService(repository=mock_repo)
 
-    with patch("src.rag_service.embed_texts", return_value=[[0.1]]):
-        with pytest.raises(RuntimeError, match="invalid document_id 0"):
-            service.index_text_document(
-                title="Bad Doc ID",
-                file_name="bad.txt",
-                content="Valid content string",
-            )
+    with (
+        patch("src.rag_service.embed_texts", return_value=[[0.1]]),
+        pytest.raises(RuntimeError, match="invalid document_id 0"),
+    ):
+        service.index_text_document(
+            title="Bad Doc ID",
+            file_name="bad.txt",
+            content="Valid content string",
+        )
 
     mock_repo.insert_document.assert_called_once()
     mock_repo.insert_chunks.assert_not_called()
@@ -355,18 +357,20 @@ def test_index_content_chunk_count_mismatch_raises() -> None:
     service = RAGService(repository=mock_repo)
 
     content = "A" * 600
-    with patch("src.rag_service.embed_texts", return_value=[[0.1], [0.2]]):
-        with pytest.raises(
+    with (
+        patch("src.rag_service.embed_texts", return_value=[[0.1], [0.2]]),
+        pytest.raises(
             RuntimeError,
             match=r"Inserted chunk count mismatch for document 'Mismatch' \(ID 30\): expected 2, got 1\.",
-        ):
-            service.index_text_document(
-                title="Mismatch",
-                file_name="mismatch.txt",
-                content=content,
-                chunk_size=400,
-                chunk_overlap=50,
-            )
+        ),
+    ):
+        service.index_text_document(
+            title="Mismatch",
+            file_name="mismatch.txt",
+            content=content,
+            chunk_size=400,
+            chunk_overlap=50,
+        )
 
 
 def test_index_content_insert_chunks_exception_propagates() -> None:
@@ -377,13 +381,15 @@ def test_index_content_insert_chunks_exception_propagates() -> None:
     )
     service = RAGService(repository=mock_repo)
 
-    with patch("src.rag_service.embed_texts", return_value=[[0.1]]):
-        with pytest.raises(RuntimeError, match="Database connection lost"):
-            service.index_text_document(
-                title="Exception Doc",
-                file_name="exc.txt",
-                content="Valid content string",
-            )
+    with (
+        patch("src.rag_service.embed_texts", return_value=[[0.1]]),
+        pytest.raises(RuntimeError, match="Database connection lost"),
+    ):
+        service.index_text_document(
+            title="Exception Doc",
+            file_name="exc.txt",
+            content="Valid content string",
+        )
 
 
 def test_index_text_document_embedding_failure_fallback() -> None:
